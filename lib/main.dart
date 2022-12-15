@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:masjid/constants/app_colors.dart';
@@ -5,11 +6,15 @@ import 'package:masjid/constants/app_font.dart';
 import 'package:masjid/controllers/main_controller.dart';
 import 'package:masjid/screens/splash.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'constants/app_routes.dart';
 import 'constants/utils.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences preferences = await SharedPreferences.getInstance();
+  await Firebase.initializeApp();
   runApp(const MyApp());
 }
 // Test

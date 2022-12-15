@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:masjid/constants/app_colors.dart';
 import 'package:masjid/constants/app_font.dart';
 import 'package:masjid/constants/app_routes.dart';
-import 'package:masjid/constants/app_strings.dart';
 import 'package:masjid/constants/navigator.dart';
 import 'package:masjid/constants/sizes.dart';
 import 'package:masjid/widgets/app_screen/app_screen.dart';
 import 'package:masjid/widgets/text/custom_text.dart';
+
+const String LOGIN = "login";
 
 class Splash extends StatelessWidget {
   const Splash({Key? key}) : super(key: key);

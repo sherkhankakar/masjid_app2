@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:masjid/constants/utils.dart';
 
-navigate(routeName) {
+  navigate(routeName) {
   Navigator.pushNamed(navigatorKey.currentContext!, routeName);
 }
 navigateAndRemove(routeName) {
