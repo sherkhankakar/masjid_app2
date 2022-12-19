@@ -1,6 +1,7 @@
 import 'package:analog_clock/analog_clock.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:masjid/constants/app_colors.dart';
 import 'package:masjid/constants/app_decorations.dart';
@@ -19,31 +20,40 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'masjid_details.dart';
 
 class ScreenHome extends StatefulWidget {
-
-
-  const ScreenHome({Key? key,}) : super(key: key);
+  const ScreenHome({
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<ScreenHome> createState() => _ScreenHomeState();
 }
 
 class _ScreenHomeState extends State<ScreenHome> {
-
-
-
   User? user = FirebaseAuth.instance.currentUser;
   FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
   var masjidTimes;
+  var now = DateTime.now();
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
+  DateTime? fajarTime ;
+  DateTime? zuharTime ;
+  DateTime? asarTime ;
+  DateTime? maghribTime ;
+  DateTime? eshaTime ;
+  var diffInHour;
 
-  //@override
-  // void initState() {
-  //   super.initState();
-  //   firebaseFirestore.collection("mosques").doc(user!.uid).get().then((value) {
-  //     masjidTimes = value;
-  //   });
+
+
+
+
+  @override
+  void initState() {
+    super.initState();
+     Future.delayed(Duration.zero,(){
+       diffInHour = DateTime.now().difference(fajarTime!).inMinutes;
+     });
+    }
 //  }
-
 
   ValueNotifier<String> masjidKey = ValueNotifier('');
 
@@ -63,11 +73,76 @@ class _ScreenHomeState extends State<ScreenHome> {
   Widget build(BuildContext context) {
     print('home is called');
     return AppScreen(
+      scaffoldKey: _scaffoldKey,
+      drawer: Drawer(
+        width: 200,
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.only(
+                topRight: Radius.circular(30),
+                bottomRight: Radius.circular(30))),
+        backgroundColor: Colors.brown,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          padding: const EdgeInsets.symmetric(vertical: 50),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  svgImage(path: AssetPaths.masjidIcon, height: 35),
+                  const CustomText(
+                    text: 'مسجد',
+                    fontColor: AppColors.primaryColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 35,
+                  ),
+                ],
+              ),
+              const Divider(
+                thickness: 1,
+                color: AppColors.primaryColor,
+              ),
+              gap(height: 40),
+              GestureDetector(
+                  onTap: () {
+                    navigate(OurRoutes.home);
+                  },
+                  child: drawerItem(iconItem: Icons.home, itemName: 'Home')),
+              gap(height: 30),
+              GestureDetector(
+                  onTap: () {
+                    navigate(OurRoutes.nearby);
+                  },
+                  child: drawerItem(iconItem: Icons.near_me_outlined, itemName: 'Nearby Masjids')),
+              gap(height: 30),
+              GestureDetector(
+                  onTap: () {
+                    if (user == null) {
+                      navigate(OurRoutes.login);
+                    } else {
+                      navigate(OurRoutes.add);
+                    }
+                  },
+                  child: drawerItem(
+                      iconItem: Icons.add_box_outlined,
+                      itemName: 'Add Masjid')),
+              gap(height: 30),
+              GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: drawerItem(iconItem: Icons.exit_to_app_outlined, itemName: 'Exit')),
+            ],
+          ),
+        ),
+      ),
       alignment: Alignment.topLeft,
       child: Column(
         children: [
           CustomAppBar(
-            ontapmenuIcon: () {},
+            ontapmenuIcon: () {
+              _scaffoldKey.currentState!.openDrawer();
+            },
             ontapMasjidIcon: () {
               if (user!.email == null) {
                 navigate(OurRoutes.login);
@@ -122,7 +197,7 @@ class _ScreenHomeState extends State<ScreenHome> {
                                       ),
                                       gap(height: 25),
                                       const CustomText(
-                                        text: 'Time Remaining: 10:00',
+                                        text: "Time Remaining: 10:00",
                                         fontColor: AppColors.whiteWithOpacy77,
                                         fontSize: AppSizes.s14,
                                       ),
@@ -135,8 +210,7 @@ class _ScreenHomeState extends State<ScreenHome> {
                                               color: AppColors.cardColor),
                                       height: 200,
                                       width: 150,
-                                      child:
-                                      ValueListenableBuilder(
+                                      child: ValueListenableBuilder(
                                         valueListenable: masjidKey,
                                         builder: (BuildContext context, value,
                                             Widget? child) {
@@ -154,10 +228,17 @@ class _ScreenHomeState extends State<ScreenHome> {
                                                   builder: (context, snapshot) {
                                                     if (!snapshot.hasData) {
                                                       return const CustomText(
-                                                          text: 'Loading',);
+                                                        text: 'Loading',
+                                                      );
                                                     }
                                                     var userDocument =
                                                         snapshot.data;
+                                                    // fajarTime = DateTime.parse(userDocument!['fajar']).;
+                                                    // zuharTime = userDocument!['zuhar'];
+                                                    // asarTime = userDocument!['asar'];
+                                                    // maghribTime = userDocument!['maghrib'];
+                                                    // eshaTime = userDocument!['esha'];
+
                                                     return Column(
                                                       children: [
                                                         const CustomText(
@@ -233,11 +314,13 @@ class _ScreenHomeState extends State<ScreenHome> {
                               itemBuilder: (context, index) {
                                 return GestureDetector(
                                   onTap: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (context)=>  MasjidDetails(
-                                      id: snapshot.data!.docs[index].id,
-                                    )));
-
-
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) => MasjidDetails(
+                                                  id: snapshot
+                                                      .data!.docs[index].id,
+                                                )));
                                   },
                                   child: ListTile(
                                     leading: svgImage(
@@ -258,7 +341,7 @@ class _ScreenHomeState extends State<ScreenHome> {
                               child: Text(snapshot.error.toString()),
                             );
                           } else {
-                            return Center(
+                            return const Center(
                               child: CircularProgressIndicator(),
                             );
                           }
@@ -270,6 +353,7 @@ class _ScreenHomeState extends State<ScreenHome> {
           ),
           user != null
               ? CustomButton(
+                  margin: const EdgeInsets.only(bottom: 10),
                   text: 'Log Out',
                   onTapFunction: () async {
                     await FirebaseAuth.instance.signOut().then((value) {
@@ -278,6 +362,26 @@ class _ScreenHomeState extends State<ScreenHome> {
                   },
                 )
               : gap(height: 0)
+        ],
+      ),
+    );
+  }
+
+  Widget drawerItem({String? itemName, IconData? iconItem}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 5),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(40),
+          border: Border.all(width: 2, color: AppColors.primaryColor)),
+      child: Row(
+        children: [
+          Icon(
+            iconItem,
+            size: 25,
+            color: AppColors.primaryColor,
+          ),
+          gap(width: 20),
+          CustomText(text: itemName, fontSize: 17, fontColor: AppColors.primaryColor,)
         ],
       ),
     );

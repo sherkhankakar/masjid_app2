@@ -16,30 +16,24 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../widgets/text/buttons/custom_button.dart';
 
-
-
 class MasjidDetails extends StatefulWidget {
-
-
   String? id;
 
-  MasjidDetails({
-    Key? key, this.id
-  }) : super(key: key);
+  MasjidDetails({Key? key, this.id}) : super(key: key);
 
   @override
   State<MasjidDetails> createState() => _MasjidDetailsState();
 }
 
 class _MasjidDetailsState extends State<MasjidDetails> {
-
-
-
   String masjidName = '';
+
+  User? user = FirebaseAuth.instance.currentUser;
 
   final FirebaseAuth auth = FirebaseAuth.instance;
   FirebaseFirestore? firebaseFirestore;
   final Completer<GoogleMapController> _controller = Completer();
+
   //var args;
   static const CameraPosition _kGooglePlex = CameraPosition(
     target: LatLng(33.9772137, 71.4253848),
@@ -82,8 +76,13 @@ class _MasjidDetailsState extends State<MasjidDetails> {
                 text: 'Set As Default',
                 width: 110,
                 onTapFunction: () {
-                  navigate(OurRoutes.login);
-                  setDefaultMosque(widget.id!);
+                  if (user == null) {
+                    navigate(OurRoutes.login);
+                    setDefaultMosque(widget.id!);
+                  } else {
+                    navigate(OurRoutes.home);
+                    setDefaultMosque(widget.id!);
+                  }
                 },
               )
             ],
@@ -102,12 +101,11 @@ class _MasjidDetailsState extends State<MasjidDetails> {
                     .doc(widget.id!)
                     .snapshots(),
                 builder: (context, snapshot) {
-
                   if (!snapshot.hasData) {
                     return const CustomText(text: 'Loading');
                   }
                   var userDocument = snapshot.data;
-                  Future.delayed(Duration.zero, (){
+                  Future.delayed(Duration.zero, () {
                     setState(() {
                       masjidName = userDocument!['name'];
                     });
@@ -163,7 +161,9 @@ class _MasjidDetailsState extends State<MasjidDetails> {
               initialCameraPosition: _kGooglePlex,
               mapType: MapType.normal,
               onMapCreated: (GoogleMapController controller) {
-                _controller.complete(controller);
+                setState(() {
+                  _controller.complete(controller);
+                });
               },
             ),
           ),
