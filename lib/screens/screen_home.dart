@@ -1,14 +1,15 @@
 import 'package:analog_clock/analog_clock.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:masjid/constants/app_colors.dart';
 import 'package:masjid/constants/app_decorations.dart';
 import 'package:masjid/constants/app_routes.dart';
 import 'package:masjid/constants/app_values.dart';
 import 'package:masjid/constants/navigator.dart';
 import 'package:masjid/constants/sizes.dart';
+import 'package:masjid/controllers/functions.dart';
 import 'package:masjid/widgets/app_screen/app_screen.dart';
 import 'package:masjid/widgets/appbar/custom_appbar.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -33,34 +34,96 @@ class _ScreenHomeState extends State<ScreenHome> {
   FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   FirebaseFirestore firebaseFirestore = FirebaseFirestore.instance;
   var masjidTimes;
-  var now = DateTime.now();
+  final now = DateTime.now();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  DateTime? fajarTime ;
-  DateTime? zuharTime ;
-  DateTime? asarTime ;
-  DateTime? maghribTime ;
-  DateTime? eshaTime ;
-  var diffInHour;
+  String? fajarTime;
 
+  String? zuharTime;
 
+  String? asarTime;
 
+  String? maghribTime;
+
+  String? eshaTime;
+
+  //var diffInHour;
+  String? nextPrayer;
+  String? nextPrayerTime;
+  int? minutesUntilNextPrayer;
+
+  getData() async{
+    var data = await firebaseFirestore
+        .collection('mosques')
+        .doc(masjidKey2).get();
+    //print(data);
+
+    fajarTime = formatTime(data['fajar']);
+    zuharTime = formatTime(data['zuhar']);
+    asarTime = formatTime(data['asar']);
+    maghribTime = formatTime(data['maghrib']);
+    eshaTime = formatTime(data['esha']);
+
+    print('Fajar time = $fajarTime');
+    print('Zuhar time = $zuharTime');
+
+   // final currentTime = DateFormat('hh:mm');
+    //print('current time = $currentTime');
+    if (now.compareTo(DateTime.parse(fajarTime.toString())) < 0) {
+      nextPrayer = 'fajar';
+      nextPrayerTime = fajarTime.toString();
+      final nextPrayerDateTime =
+          '${DateFormat('yyyy-MM-dd').format(now)} $fajarTime';
+      final nextPrayerDuration =
+      DateTime.parse(nextPrayerDateTime).difference(now);
+      minutesUntilNextPrayer =  nextPrayerDuration.inMinutes;
+      print('duration = $nextPrayerDuration' );
+      print('next prayer: $nextPrayer');
+      print(minutesUntilNextPrayer);
+    } else {
+      nextPrayer = 'asar';
+      nextPrayerTime = asarTime.toString();
+      final nextPrayerDateTime =
+          '${DateFormat('hh:mm').format(now)} $asarTime';
+      print('Next Prayer date Time = $nextPrayerDateTime');
+      final nextPrayerDuration =
+      DateTime.parse(nextPrayerDateTime).difference(now);
+      print('Next Prayer Duration,,,,,,,,, = $nextPrayerDuration');
+      minutesUntilNextPrayer =  nextPrayerDuration.inMinutes;
+      print('duration = $nextPrayerDuration' );
+      print('next prayer: $nextPrayer');
+      print(minutesUntilNextPrayer);
+    }
+
+    // asarTime = formatTime(userDocument['zuhar']);
+    // asarTime = formatTime(userDocument['asar']);
+    // maghribTime = formatTime(userDocument['maghrib']);
+    // eshaTime = formatTime(userDocument['esha']);
+  }
 
 
   @override
   void initState() {
     super.initState();
-     Future.delayed(Duration.zero,(){
-       diffInHour = DateTime.now().difference(fajarTime!).inMinutes;
-     });
-    }
+
+    Future.delayed( Duration.zero).then((value) {
+      getData();
+    });
+
+    // Future.delayed(const Duration(seconds: 1)).then((value) {
+    //
+    // });
+  }
+
 //  }
 
   ValueNotifier<String> masjidKey = ValueNotifier('');
+  late String masjidKey2;
 
   void getMasjidId() async {
     SharedPreferences preferences = await SharedPreferences.getInstance();
     masjidTimes = preferences.getString('mosque_id');
     masjidKey.value = preferences.getString('mosque_id')!;
+    masjidKey2 = preferences.getString('mosque_id')!;
   }
 
   @override
@@ -75,7 +138,7 @@ class _ScreenHomeState extends State<ScreenHome> {
     return AppScreen(
       scaffoldKey: _scaffoldKey,
       drawer: Drawer(
-        width: 200,
+        width: MediaQuery.of(context).size.width/1.8,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.only(
                 topRight: Radius.circular(30),
@@ -113,7 +176,9 @@ class _ScreenHomeState extends State<ScreenHome> {
                   onTap: () {
                     navigate(OurRoutes.nearby);
                   },
-                  child: drawerItem(iconItem: Icons.near_me_outlined, itemName: 'Nearby Masjids')),
+                  child: drawerItem(
+                      iconItem: Icons.near_me_outlined,
+                      itemName: 'Nearby Masjids')),
               gap(height: 30),
               GestureDetector(
                   onTap: () {
@@ -131,7 +196,8 @@ class _ScreenHomeState extends State<ScreenHome> {
                   onTap: () {
                     Navigator.of(context).pop();
                   },
-                  child: drawerItem(iconItem: Icons.exit_to_app_outlined, itemName: 'Exit')),
+                  child: drawerItem(
+                      iconItem: Icons.exit_to_app_outlined, itemName: 'Exit')),
             ],
           ),
         ),
@@ -196,8 +262,8 @@ class _ScreenHomeState extends State<ScreenHome> {
                                         datetime: DateTime.now(),
                                       ),
                                       gap(height: 25),
-                                      const CustomText(
-                                        text: "Time Remaining: 10:00",
+                                      CustomText(
+                                        text: 'Time Remaining: ${minutesUntilNextPrayer.toString()}',
                                         fontColor: AppColors.whiteWithOpacy77,
                                         fontSize: AppSizes.s14,
                                       ),
@@ -233,11 +299,6 @@ class _ScreenHomeState extends State<ScreenHome> {
                                                     }
                                                     var userDocument =
                                                         snapshot.data;
-                                                    // fajarTime = DateTime.parse(userDocument!['fajar']).;
-                                                    // zuharTime = userDocument!['zuhar'];
-                                                    // asarTime = userDocument!['asar'];
-                                                    // maghribTime = userDocument!['maghrib'];
-                                                    // eshaTime = userDocument!['esha'];
 
                                                     return Column(
                                                       children: [
@@ -381,7 +442,11 @@ class _ScreenHomeState extends State<ScreenHome> {
             color: AppColors.primaryColor,
           ),
           gap(width: 20),
-          CustomText(text: itemName, fontSize: 17, fontColor: AppColors.primaryColor,)
+          CustomText(
+            text: itemName,
+            fontSize: 17,
+            fontColor: AppColors.primaryColor,
+          )
         ],
       ),
     );
